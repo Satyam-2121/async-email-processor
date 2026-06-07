@@ -1,0 +1,5 @@
+node_modules/
+.env
+async-email-ui/node_modules/
+async-email-ui/.next/
+dist/
