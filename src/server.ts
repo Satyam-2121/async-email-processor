@@ -12,19 +12,37 @@ app.use(cors());
 
 
 app.post("/send-email", async (req, res) => {
-  const { email } = req.body;
+  const email = req.body?.email;
 
-  await emailQueue.add(
-    "send-email",
-    { email },
-    {
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 1000,
-      },
-    }
-  );
+  if (
+    typeof email !== "string" ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "A valid email address is required",
+    });
+  }
+
+  try {
+    await emailQueue.add(
+      "send-email",
+      { email: email.trim() },
+      {
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 1000,
+        },
+      }
+    );
+  } catch (error) {
+    console.error("Failed to queue email:", error);
+    return res.status(503).json({
+      success: false,
+      message: "Email service is temporarily unavailable",
+    });
+  }
 
   res.json({
     success: true,
