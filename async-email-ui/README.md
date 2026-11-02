@@ -2,17 +2,28 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+Run the API on a separate port so it does not conflict with the Next.js UI.
+From the repository root, install the API dependencies and start it:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm ci
+PORT=3001 npx ts-node-dev src/server.ts
 ```
+
+Keep Redis and the email worker running for queued emails to be processed.
+
+In another terminal, start the UI from `async-email-ui`:
+
+```bash
+npm ci
+NEXT_PUBLIC_API_URL=http://localhost:3001 npm run dev
+```
+
+`NEXT_PUBLIC_API_URL` sets the API base URL. It defaults to
+`http://localhost:3000` when omitted and accepts a trailing slash. You can also
+set it in `async-email-ui/.env.local`. Restart the development server after
+changing it. For production, set it before `npm run build` because Next.js
+embeds this public value in the browser bundle.
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 

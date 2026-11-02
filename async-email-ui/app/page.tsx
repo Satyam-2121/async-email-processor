@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000").replace(/\/+$/, "");
+
 export default function Home() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("");
 
   const sendEmail = async () => {
     try {
-      const res = await fetch("http://localhost:3000/send-email", {
+      const res = await fetch(`${API_URL}/send-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
