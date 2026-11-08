@@ -7,3 +7,9 @@ export const emailQueue = new Queue("emailQueue", {
     enableOfflineQueue: false,
   },
 });
+
+// BullMQ emits connection errors independently of failed enqueue requests.
+// Handle them so an unavailable Redis server does not terminate the API.
+emailQueue.on("error", (error) => {
+  console.error("Email queue connection error:", error.message);
+});

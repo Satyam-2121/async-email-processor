@@ -53,6 +53,7 @@ function loadQueue(port) {
   const exports = {};
   vm.runInNewContext(output, {
     exports,
+    console: { error() {} },
     require(name) {
       assert.equal(name, "bullmq");
       return {
@@ -87,7 +88,7 @@ test("email producer rejects during a Redis outage and recovers afterward", {
     await stopRedis(redis);
   });
   queue = loadQueue(port);
-  queue.on("error", () => {});
+  assert.doesNotThrow(() => queue.emit("error", new Error("Redis unavailable")));
   client = await queue.waitUntilReady();
   const job = await queue.add("send-email", { email: "before@example.com" });
   assert.ok(job.id);
