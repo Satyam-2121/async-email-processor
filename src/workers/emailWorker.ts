@@ -2,9 +2,6 @@ import "dotenv/config";
 import { Worker } from "bullmq";
 import nodemailer from "nodemailer";
 
-console.log("USER:", process.env.EMAIL_USER);
-console.log("PASS LENGTH:", process.env.EMAIL_PASS?.length);
-
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
