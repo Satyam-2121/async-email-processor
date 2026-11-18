@@ -69,41 +69,43 @@ function loadQueue(port) {
       };
     },
   });
-  return exports.emailQueue;
+  return exports;
 }
 
-test("email producer rejects during a Redis outage and recovers afterward", {
+test("email producer rejects before Redis starts and during outages, then recovers", {
   timeout: 15000,
   skip: spawnSync("redis-server", ["--version"]).status !== 0
     ? "Install redis-server to run the queue integration test"
     : false,
 }, async (t) => {
   const port = await freePort();
-  let redis = await startRedis(port);
-  let queue;
-  let client;
+  let redis;
+  const { emailQueue: queue, enqueueEmail } = loadQueue(port);
   t.after(async () => {
-    // Disconnect directly: waiting for an "end" event can hang during reconnection.
-    if (client) client.disconnect();
-    await stopRedis(redis);
+    try {
+      await queue.close();
+    } finally {
+      await stopRedis(redis);
+    }
   });
-  queue = loadQueue(port);
+  await assert.rejects(enqueueEmail("startup@example.com"), /queue is not ready/);
   assert.doesNotThrow(() => queue.emit("error", new Error("Redis unavailable")));
-  client = await queue.waitUntilReady();
-  const job = await queue.add("send-email", { email: "before@example.com" });
+  redis = await startRedis(port);
+  const client = await queue.waitUntilReady();
+  const job = await enqueueEmail("before@example.com");
   assert.ok(job.id);
 
   const disconnected = new Promise((resolve) => queue.once("ioredis:close", resolve));
   await stopRedis(redis);
   await disconnected;
   await assert.rejects(Promise.race([
-    queue.add("send-email", { email: "during@example.com" }),
+    enqueueEmail("during@example.com"),
     delay(1500).then(() => { throw new Error("Email request remained pending"); }),
   ]), /enableOfflineQueue|Stream isn't writeable/);
 
   redis = await startRedis(port);
   while (client.status !== "ready") await delay(20);
-  const recovered = await queue.add("send-email", { email: "after@example.com" });
+  const recovered = await enqueueEmail("after@example.com");
   assert.ok(recovered.id);
   assert.equal(await queue.getWaitingCount(), 1);
 });

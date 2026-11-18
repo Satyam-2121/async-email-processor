@@ -13,3 +13,23 @@ export const emailQueue = new Queue("emailQueue", {
 emailQueue.on("error", (error) => {
   console.error("Email queue connection error:", error.message);
 });
+
+let initialized = false;
+void emailQueue.waitUntilReady().then(
+  () => { initialized = true; },
+  (error) => { console.error("Email queue initialization failed:", error.message); },
+);
+
+export async function enqueueEmail(email: string) {
+  if (!initialized) {
+    throw new Error("Email queue is not ready");
+  }
+
+  return emailQueue.add("send-email", { email }, {
+    attempts: 3,
+    backoff: {
+      type: "exponential",
+      delay: 1000,
+    },
+  });
+}

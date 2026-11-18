@@ -1,6 +1,6 @@
 import cors from "cors";
 import express from "express";
-import { emailQueue } from "./queues/emailQueue";
+import { enqueueEmail } from "./queues/emailQueue";
 
 const app = express();
 
@@ -25,17 +25,7 @@ app.post("/send-email", async (req, res) => {
   }
 
   try {
-    await emailQueue.add(
-      "send-email",
-      { email: email.trim() },
-      {
-        attempts: 3,
-        backoff: {
-          type: "exponential",
-          delay: 1000,
-        },
-      }
-    );
+    await enqueueEmail(email.trim());
   } catch (error) {
     console.error("Failed to queue email:", error);
     return res.status(503).json({
