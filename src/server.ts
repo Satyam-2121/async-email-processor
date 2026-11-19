@@ -1,14 +1,15 @@
 import cors from "cors";
-import express from "express";
+import express, { type ErrorRequestHandler } from "express";
 import { enqueueEmail } from "./queues/emailQueue";
 
 const app = express();
+
+app.use(cors());
 
 app.get("/", (req, res) => {
   res.send("Server is running!");
 });
 app.use(express.json());
-app.use(cors());
 
 
 app.post("/send-email", async (req, res) => {
@@ -39,6 +40,18 @@ app.post("/send-email", async (req, res) => {
     message: "Job added to queue",
   });
 });
+
+const handleJsonErrors: ErrorRequestHandler = (error, _req, res, next) => {
+  if (error.type === "entity.parse.failed") {
+    res.status(400).json({ success: false, message: "Invalid JSON request body" });
+  } else if (error.type === "entity.too.large") {
+    res.status(413).json({ success: false, message: "Request body is too large" });
+  } else {
+    next(error);
+  }
+};
+
+app.use(handleJsonErrors);
 
 const port = Number(process.env.PORT ?? 3000);
 
