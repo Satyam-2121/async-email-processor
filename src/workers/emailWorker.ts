@@ -1,6 +1,6 @@
-import "dotenv/config";
 import { Worker } from "bullmq";
 import nodemailer from "nodemailer";
+import { redisConnection } from "../redisConnection";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -32,12 +32,7 @@ const worker = new Worker(
 
     console.log("Email sent!");
   },
-  {
-    connection: {
-      host: "127.0.0.1",
-      port: 6379,
-    },
-  }
+  { connection: redisConnection }
 );
 
 worker.on("completed", (job) => {

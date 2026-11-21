@@ -1,7 +1,9 @@
 import { Queue } from "bullmq";
+import { redisConnection } from "../redisConnection";
 
 export const emailQueue = new Queue("emailQueue", {
   connection: {
+    ...redisConnection,
     // HTTP requests should fail during Redis outages instead of waiting forever.
     maxRetriesPerRequest: 1,
     enableOfflineQueue: false,

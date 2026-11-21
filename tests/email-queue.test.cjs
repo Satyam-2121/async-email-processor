@@ -45,31 +45,33 @@ async function stopRedis(process) {
   });
 }
 
-function loadQueue(port) {
-  const source = readFileSync(path.join(__dirname, "../src/queues/emailQueue.ts"), "utf8");
+function loadModule(file, env, loadDependency) {
+  const source = readFileSync(path.join(__dirname, "../src", file), "utf8");
   const output = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS },
   }).outputText;
   const exports = {};
   vm.runInNewContext(output, {
     exports,
+    process: { env },
     console: { error() {} },
-    require(name) {
-      assert.equal(name, "bullmq");
-      return {
-        Queue: class extends Queue {
-          constructor(name, options) {
-            // Exercise the application's real queue settings against an isolated Redis.
-            super(name, {
-              ...options,
-              connection: { ...options.connection, host: "127.0.0.1", port },
-            });
-          }
-        },
-      };
-    },
+    require: loadDependency,
   });
   return exports;
+}
+
+function loadQueue(port) {
+  const env = { REDIS_HOST: "127.0.0.1", REDIS_PORT: String(port) };
+  const config = loadModule("redisConnection.ts", env, (name) => {
+    assert.equal(name, "dotenv/config");
+    return {};
+  });
+  assert.equal(config.redisConnection.port, port);
+  return loadModule("queues/emailQueue.ts", env, (name) => {
+    if (name === "../redisConnection") return config;
+    assert.equal(name, "bullmq");
+    return { Queue };
+  });
 }
 
 test("email producer rejects before Redis starts and during outages, then recovers", {
