@@ -43,3 +43,21 @@ worker.on("failed", (job, err) => {
   console.log(`Job ${job?.id} failed`);
   console.log(err.message);
 });
+
+let shuttingDown = false;
+async function shutdown() {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  try {
+    await worker.close();
+  } catch (error) {
+    console.error("Could not close email worker:", error);
+    process.exitCode = 1;
+  } finally {
+    transporter.close();
+  }
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
