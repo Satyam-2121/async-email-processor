@@ -26,7 +26,12 @@ app.post("/send-email", async (req, res) => {
   }
 
   try {
-    await enqueueEmail(email.trim());
+    const job = await enqueueEmail(email.trim());
+    return res.json({
+      success: true,
+      message: "Job added to queue",
+      jobId: job.id,
+    });
   } catch (error) {
     console.error("Failed to queue email:", error);
     return res.status(503).json({
@@ -34,11 +39,6 @@ app.post("/send-email", async (req, res) => {
       message: "Email service is temporarily unavailable",
     });
   }
-
-  res.json({
-    success: true,
-    message: "Job added to queue",
-  });
 });
 
 const handleJsonErrors: ErrorRequestHandler = (error, _req, res, next) => {
