@@ -1,4 +1,4 @@
-import { Worker } from "bullmq";
+import { UnrecoverableError, Worker } from "bullmq";
 import nodemailer from "nodemailer";
 import { redisConnection } from "../redisConnection";
 
@@ -23,12 +23,25 @@ const worker = new Worker(
   async (job) => {
     console.log("Processing job:", job.id);
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: job.data.email,
-      subject: "Test Email from BullMQ",
-      text: "Hello! This email was sent asynchronously using Redis + BullMQ.",
-    });
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: job.data.email,
+        subject: "Test Email from BullMQ",
+        text: "Hello! This email was sent asynchronously using Redis + BullMQ.",
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        "responseCode" in error &&
+        typeof error.responseCode === "number" &&
+        error.responseCode >= 500 &&
+        error.responseCode < 600
+      ) {
+        throw new UnrecoverableError(error.message);
+      }
+      throw error;
+    }
 
     console.log("Email sent!");
   },
