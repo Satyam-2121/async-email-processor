@@ -10,14 +10,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("SMTP Error:", error);
-  } else {
-    console.log("SMTP Ready");
-  }
-});
-
 const worker = new Worker(
   "emailQueue",
   async (job) => {
